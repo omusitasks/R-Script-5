@@ -1,0 +1,203 @@
+---
+title: "R Notebook"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+```{R}
+tinytex::install_tinytex()
+##Breast-cancer dataset and German Credit Data
+###Task 1 (15 marks)
+#PART 2
+
+```
+
+
+
+```{r}
+#read the dataset
+german.data <- read.csv("C:/Users/o/Downloads/german.csv")
+
+#get top data
+head(german.data)
+```
+
+
+```{r}
+#path to our breast-cancer dataset
+url <- "https://archive.ics.uci.edu/ml/machine-learning-databases/breast-cancer/breast-cancer.data"
+
+#read the dataset
+data <- read.csv(url)
+
+#get top data
+head(data)
+```
+
+
+```{r}
+
+#data preprocessing
+url.data <- "C:/Users/o/Downloads/german.csv"
+#1.---data cleaning by naming the col
+#Add the column names
+data.with.colnames <- read.csv(file=url.data, header= FALSE, col.names = c("status","duration.in.month","credit.history","purpose","credit.amount","employment","installment.rate","status.sex","debtors/guanrators","resident","property","Age","installment.plan","Housing","#ofCredits","Job","#people.liable","Telephone","Foreign.worker"))
+
+#print the data.with.colnames
+head(data.with.colnames)
+```
+
+
+
+```{r}
+
+#data preprocessing
+
+#1.---data cleaning by naming the col
+#Add the column names
+data.with.colnames <- read.csv(file=url, header= FALSE, col.names = c("class","Age","menopause","tumor.size","inv.nodes","nodes.caps","deg.malig","breast","breast.quad","irradiat"))
+
+#print the data.with.colnames
+head(data.with.colnames)
+View(data.with.colnames)
+```
+
+```{r}
+#install.packages("dplyr")
+#install.packages("tidyverse")
+library(dplyr)
+library(tidyverse)
+
+#data preprocessing
+#data cleaning by working on missing values
+
+dataset <- data.with.colnames
+
+#convert to factor variables
+dataset$class <- as.factor(dataset$class)
+dataset$Age <- as.factor(dataset$Age)
+dataset$menopause <- as.factor(dataset$menopause)
+dataset$tumor.size <- as.factor(dataset$tumor.size)
+dataset$inv.nodes <- as.factor(dataset$inv.nodes)
+dataset$nodes.caps <- as.factor(dataset$nodes.caps)
+dataset$deg.malig <- as.factor(dataset$deg.malig)
+dataset$breast <- as.factor(dataset$breast)
+dataset$breast.quad <- as.factor(dataset$breast.quad)
+dataset$irradiat <- as.factor(dataset$irradiat)
+
+#Remove the "?" special character from the nodes-caps col
+
+my.dataset <- dataset[-grep("\\?",dataset$nodes.caps),]
+glimpse(my.dataset)
+```
+
+
+```{r}
+#install.packages("Metrics")
+#install.packages("mlr")
+library(rpart)
+library(Metrics)
+library(mlr)
+###Task 3 (20 marks)
+#PART 1
+
+# Splitting data into Train and Test
+my.dataset['row_id'] = rownames(my.dataset)
+set.seed(123)
+train_data <- my.dataset %>%
+  sample_frac(0.7)
+test_data <- my.dataset %>%
+  anti_join(train_data, by='row_id')
+# Drop row_id from both dataframes
+train_data[,'row_id'] <- NULL
+test_data[,'row_id'] <- NULL
+
+###fiting the decision tree
+d.tree = rpart(class ~ ., 
+               data=train_data, 
+               method = 'class')
+
+# Predict Values
+predicted_values <- predict(d.tree, test_data, type = 'class')
+# Getting Accuracy
+accuracy(test_data$class, predicted_values)
+
+d.tree.custom = rpart(class~ ., 
+               data=train_data, 
+               method = 'class',
+               control = c(maxdepth = 10, cp=0.001))
+
+# Predict Values
+predicted_values <- predict(d.tree.custom, test_data, type = 'class')
+# Getting Accuracy
+accuracy(test_data$class, predicted_values)
+
+##Parameter tuning
+d.tree.params <- makeClassifTask(
+ data=train_data, 
+ target="class"
+ )
+
+param_grid <- makeParamSet( 
+ makeDiscreteParam("maxdepth", values=1:100))
+
+# Define Grid
+control_grid = makeTuneControlGrid()
+# Define Cross Validation
+resample = makeResampleDesc("CV", iters = 3L)
+# Define Measure
+measure = acc
+
+
+set.seed(123)
+dt_tuneparam <- tuneParams(learner='classif.rpart', 
+ task=d.tree.params, 
+ resampling = resample,
+ measures = measure,
+ par.set=param_grid, 
+ control=control_grid, 
+ show.info = TRUE)
+```
+
+
+```{r}
+#install libraires
+#install.packages("rpart.plot")
+
+#load library
+library(rpart)
+library(rpart.plot)
+fit <- rpart(class~., data = train_data, method = 'class')
+rpart.plot(fit, extra = 106)
+```
+
+
+```{r}
+#install.packages("ggcorrplot")
+library(ggcorrplot)
+library(dplyr)
+###Task 4 (30 marks)
+#PART 1
+
+# Select columns of the dataframe
+data <- select(my.dataset,class,Age,menopause,nodes.caps)
+
+library(ggcorrplot)
+model.matrix(~0+., data=data) %>% 
+  cor(use="pairwise.complete.obs") %>% 
+  ggcorrplot(show.diag = F, type="lower", lab=TRUE, lab_size=2)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
